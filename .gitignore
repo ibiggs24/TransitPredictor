@@ -1,7 +1,19 @@
-venv/
+# Python
 __pycache__/
 *.pyc
-*.sqlite
+*.pyo
+*.pyd
+venv/
+.env
+
+# SQLite DB
 *.db
-*.ipynb_checkpoints
-models/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Logs and data
+*.log
+*.csv
+*.zip
+data/
