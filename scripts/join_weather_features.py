@@ -23,6 +23,11 @@ for h in df["hour"].unique():
     weather = fetch_weather("chicago", dt)
     if weather:
         weather_by_hour[h] = weather
+    else:
+        print(f"Skipping hour {h}, no weather data.")
+
+# Filter our rows with missing weather
+df = df[df["hour"].isin(weather_by_hour.keys())]
 
 # Map weather features to each row by hour
 df["temp"] = df["hour"].map(lambda h: weather_by_hour[h]["temp"])

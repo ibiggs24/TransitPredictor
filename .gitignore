@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 venv/
 .env
+*.ipynb_checkpoints
 
 # SQLite DB
 *.db
@@ -16,4 +17,8 @@ venv/
 *.log
 *.csv
 *.zip
+*.geojson
 data/
+
+venv/
+venv311/
