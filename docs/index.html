@@ -185,8 +185,8 @@
 
         <div class="control-section">
             <label for="hourSlider">Hour of Day:</label>
-            <input type="range" id="hourSlider" min="0" max="8" value="3" step="1">
-            <div class="value-display" id="hourDisplay">8:00 AM</div>
+            <input type="range" id="hourSlider" min="0" max="7" value="3" step="1">
+            <div class="value-display" id="hourDisplay">9:00 AM</div>
         </div>
 
         <div class="control-section stats">
@@ -232,8 +232,8 @@
 
     <script>
         const CHICAGO_CENTER = [-87.6298, 41.8781];
-        let map, geojsonData, featureImportance;
-        let currentHour = 8;
+        let map, geojsonData, featureImportance, routeData;
+        let currentHour = 9;
         let currentDate = null;
         let featureChart;
 
@@ -254,6 +254,14 @@
                 createFeatureChart();
             })
             .catch(err => console.log('Feature importance not available'));
+
+        // Load route lines
+        fetch('predictions/routes.geojson')
+            .then(response => response.json())
+            .then(data => {
+                routeData = data;
+            })
+            .catch(err => console.log('Route data not available'));
 
         // Load GeoJSON data
         fetch('predictions/predictions_multidate.geojson')
@@ -288,6 +296,26 @@
 
         function initializeMap() {
             map.on('load', () => {
+                // Add route lines first (so they appear under the points)
+                if (routeData) {
+                    map.addSource('routes', {
+                        type: 'geojson',
+                        data: routeData
+                    });
+
+                    map.addLayer({
+                        id: 'routes-layer',
+                        type: 'line',
+                        source: 'routes',
+                        paint: {
+                            'line-color': '#666666',
+                            'line-width': 2,
+                            'line-opacity': 0.4
+                        }
+                    });
+                }
+
+                // Add prediction points
                 map.addSource('predictions', {
                     type: 'geojson',
                     data: filterData()
@@ -365,8 +393,8 @@
             }
         }
 
-        // Hour slider - map to available hours
-        const availableHours = [0, 3, 6, 8, 12, 15, 17, 20, 23];
+        // Hour slider - uniform 3-hour intervals
+        const availableHours = [0, 3, 6, 9, 12, 15, 18, 21];
         document.getElementById('hourSlider').addEventListener('input', (e) => {
             const sliderPos = parseInt(e.target.value);
             currentHour = availableHours[sliderPos];
