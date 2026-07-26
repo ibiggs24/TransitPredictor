@@ -1,36 +1,39 @@
 # CTA Transit Delay Prediction
 
-A geospatial machine learning pipeline that predicts transit delays for the Chicago Transit Authority (CTA) using GTFS data, weather enrichment, and spatial propagation modeling. Demonstrates spatial feature engineering and interactive web mapping.
+A geospatial machine learning pipeline that predicts transit delays for the Chicago Transit Authority (CTA) using GTFS data, weather enrichment, and spatial feature engineering. Interactive web map displays monthly predictions across all CTA rail stops with realistic time-of-day and seasonal patterns.
 
 **[View Live Demo →](https://ibiggs24.github.io/TransitPredictor/)**
 
 ## Key Features
 
 ### Spatial ML Pipeline
-- **Spatial features**: distance from Loop, upstream delay propagation, segment length, transfer hub detection
-- **Route-level modeling**: Delays propagate along trips based on prior stops
-- **Seasonal weather integration**: Hourly weather data across full year from Visual Crossing API (Winter, Spring, Summer, Fall)
-- **XGBoost with SMOTE**: Handles class imbalance for better delay detection
+- **Spatial features**: distance from Loop, transfer hub detection
+- **Seasonal variation**: Monthly weather patterns (Chicago climate averages)
+- **Time-of-day realism**: Hour-based multipliers (rush hour peaks, minimal 3am delays)
+- **XGBoost classifier**: Trained on GTFS data with weather enrichment
 
 ### Interactive Visualization
-- **MapLibre web map** with hour-by-hour delay predictions
-- **GeoJSON output** compatible with ArcGIS Online, QGIS, and web mapping tools
-- **11,000+ CTA stops** with lat/lon coordinates
+- **Vanilla JavaScript** with MapLibre GL JS (no frameworks)
+- **All 144 CTA rail stops** with monthly predictions
+- **12 months of predictions** (January-December using 15th of each month)
+- **8 time intervals** per day (12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm)
+- **Route geometries** from GTFS shapes.txt (curved, realistic tracks)
+- **GeoJSON format** compatible with ArcGIS Online, QGIS, and other mapping tools
 
-### Model Performance
-- **Delay detection recall**: 25% (vs 6% without spatial features)
-- **Delay detection F1-score**: 0.29 (vs 0.06 baseline)
-- **Overall accuracy**: 76%
-- **59 features** including distance from Loop, upstream delay, segment length, and transfer hub status
+### Realistic Patterns
+- **Winter delays**: Higher probability during cold months (January 40% increase)
+- **Summer efficiency**: Lower delays in warm months (June 15% decrease)
+- **Rush hour peaks**: 9am and 6pm show highest delays
+- **Overnight lows**: Minimal delays at 3am (trains run efficiently with low ridership)
 
-> **Note**: This project uses **simulated delays** with realistic spatial propagation, not actual CTA data. The simulation incorporates rush hour patterns, weather impacts, and route-level delay persistence to demonstrate spatial ML techniques.
+> **Note**: This project uses **simulated delays** with realistic spatial propagation, not actual CTA data. The simulation demonstrates ML techniques for transit prediction.
 
 ## Technologies
 
-- **ML**: XGBoost, scikit-learn, imbalanced-learn
+- **ML**: XGBoost, scikit-learn
 - **Geospatial**: geopy, GeoJSON
 - **Data**: pandas, SQLite, GTFS
-- **Visualization**: MapLibre GL JS
+- **Visualization**: Vanilla JavaScript, MapLibre GL JS
 - **APIs**: Visual Crossing Weather API
 
 ## Setup Instructions
@@ -74,14 +77,17 @@ python scripts/label_delays.py
 # Enrich with weather data
 python scripts/join_weather_features.py
 
-# Add spatial features (distance from Loop, upstream delay, etc.)
+# Add spatial features (distance from Loop, transfer hub, etc.)
 python scripts/add_spatial_features.py
 
 # Train XGBoost model with spatial features
 python scripts/train_xgboost_gridsearch.py
 
-# Generate GeoJSON predictions
-python scripts/generate_geojson.py
+# Generate multi-date GeoJSON predictions with realistic patterns
+python scripts/generate_multidate_geojson.py
+
+# Generate route geometries from GTFS shapes
+python scripts/generate_routes_geojson.py
 ```
 
 ### 5. View the map
@@ -96,32 +102,37 @@ Open `docs/index.html` in your browser or deploy to GitHub Pages:
 ## Pipeline Architecture
 
 ```
-GTFS Data → SQLite → Delay Simulation → Weather Enrichment → Spatial Features → XGBoost → GeoJSON → MapLibre Map
+GTFS Data → SQLite → Delay Simulation → Weather Enrichment → Spatial Features → XGBoost → Multi-Date GeoJSON → MapLibre Map
 ```
 
-**Spatial features added:**
+**Spatial features:**
 - `distance_from_loop`: Distance in km from downtown Chicago (41.8781°N, 87.6298°W)
-- `upstream_delay`: Cumulative delay minutes from previous stops on the same trip
-- `segment_length`: Distance between consecutive stops
-- `is_transfer_hub`: Binary flag for stops with transfers
-- `route_type`: Bus vs rail classification
+- `is_transfer_hub`: Binary flag for transfer stations
+
+**Realistic multipliers:**
+- **Month-based**: Winter 1.4x delays, Summer 0.85x delays
+- **Hour-based**: Rush hour 1.0x, 3am 0.02x (minimal delays)
 
 ## Project Structure
 
 ```
 TransitPredictor/
 ├── scripts/
-│   ├── load_gtfs_sample.py       # Load GTFS into SQLite
-│   ├── label_delays.py            # Simulate delays with propagation
-│   ├── join_weather_features.py   # Add weather data
-│   ├── add_spatial_features.py    # Calculate spatial features
-│   ├── train_xgboost_gridsearch.py # Train model
-│   └── generate_geojson.py        # Create predictions
+│   ├── load_gtfs_sample.py            # Load GTFS into SQLite
+│   ├── label_delays.py                # Simulate delays with propagation
+│   ├── join_weather_features.py       # Add weather data
+│   ├── add_spatial_features.py        # Calculate spatial features
+│   ├── train_xgboost_gridsearch.py    # Train XGBoost model
+│   ├── generate_multidate_geojson.py  # Create 12-month predictions
+│   └── generate_routes_geojson.py     # Extract route geometries
 ├── docs/
-│   ├── index.html                 # MapLibre web map
-│   └── predictions.geojson        # Prediction output
-├── data/google_transit/           # GTFS files (gitignored)
-├── smart_transit.db               # SQLite database (gitignored)
+│   ├── index.html                     # MapLibre web map (vanilla JS)
+│   └── predictions/
+│       ├── predictions_multidate.geojson  # 12 months × 144 stops × 8 hours
+│       └── routes.geojson                 # CTA route geometries
+├── data/google_transit/               # GTFS files (gitignored)
+├── smart_transit.db                   # SQLite database (gitignored)
+├── .env                               # API keys (gitignored)
 └── requirements.txt
 ```
 
