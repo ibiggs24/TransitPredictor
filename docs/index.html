@@ -217,6 +217,8 @@
 
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM ready');
+
             // Initialize map
             map = new maplibregl.Map({
                 container: 'map',
@@ -225,41 +227,72 @@
                 zoom: 11
             });
 
+            console.log('Map created');
+
             initializeData();
+            setupEventListeners();
         });
 
+        function setupEventListeners() {
+            // Hour slider - uniform 3-hour intervals
+            const availableHours = [0, 3, 6, 9, 12, 15, 18, 21];
+            document.getElementById('hourSlider').addEventListener('input', (e) => {
+                const sliderPos = parseInt(e.target.value);
+                currentHour = availableHours[sliderPos];
+                const displayHour = currentHour === 0 ? 12 : (currentHour > 12 ? currentHour - 12 : currentHour);
+                const period = currentHour < 12 ? 'AM' : 'PM';
+                document.getElementById('hourDisplay').textContent = `${displayHour}:00 ${period}`;
+                updateMap();
+            });
+
+            // Date selector
+            document.getElementById('dateSelect').addEventListener('change', (e) => {
+                currentDate = e.target.value;
+                updateMap();
+            });
+        }
+
         function initializeData() {
-            // Feature importance not displayed
+            console.log('initializeData called');
 
             // Load route lines
             fetch('predictions/routes.geojson')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Routes response received');
+                    return response.json();
+                })
                 .then(data => {
                     routeData = data;
+                    console.log('Routes loaded:', data.features.length, 'routes');
                 })
-                .catch(err => console.log('Route data not available'));
+                .catch(err => console.log('Route data not available:', err));
 
             // Load GeoJSON data
+            console.log('Starting to fetch predictions...');
             fetch('predictions/predictions_multidate.geojson')
                 .then(response => {
+                    console.log('Predictions response received, status:', response.status);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Predictions JSON parsed, features:', data.features.length);
                     geojsonData = data;
 
                     // Populate date selector with months in chronological order
                     const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June',
                                        'July', 'August', 'September', 'October', 'November', 'December'];
                     const dates = data.dates || monthOrder;
+                    console.log('Dates available:', dates);
                     const dateSelect = document.getElementById('dateSelect');
                     dateSelect.innerHTML = dates.map(d =>
                         `<option value="${d}">${d}</option>`
                     ).join('');
                     currentDate = dates[0];
                     dateSelect.value = currentDate;
+                    console.log('Date selector populated, calling initializeMap');
 
                     initializeMap();
                 })
@@ -269,9 +302,12 @@
                     dateSelect.innerHTML = '<option value="">Error loading data - check console</option>';
                     alert('Failed to load prediction data. Check the browser console for details.');
                 });
+        }
 
         function initializeMap() {
+            console.log('initializeMap called, waiting for map load event');
             map.on('load', () => {
+                console.log('Map loaded event fired');
                 // Add route lines first (so they appear under the points)
                 if (routeData) {
                     map.addSource('routes', {
@@ -323,6 +359,8 @@
                     }
                 });
 
+                console.log('Predictions layer added successfully');
+
                 // Click popup - simple
                 map.on('click', 'predictions-layer', (e) => {
                     const props = e.properties;
@@ -349,12 +387,14 @@
         }
 
         function filterData() {
+            const filtered = geojsonData.features.filter(f =>
+                f.properties.hour === currentHour &&
+                f.properties.date === currentDate
+            );
+            console.log('filterData: hour=' + currentHour + ', date=' + currentDate + ', filtered=' + filtered.length + ' features');
             return {
                 type: 'FeatureCollection',
-                features: geojsonData.features.filter(f =>
-                    f.properties.hour === currentHour &&
-                    f.properties.date === currentDate
-                )
+                features: filtered
             };
         }
 
@@ -362,24 +402,6 @@
             if (map.getSource('predictions')) {
                 map.getSource('predictions').setData(filterData());
             }
-        }
-
-            // Hour slider - uniform 3-hour intervals
-            const availableHours = [0, 3, 6, 9, 12, 15, 18, 21];
-            document.getElementById('hourSlider').addEventListener('input', (e) => {
-                const sliderPos = parseInt(e.target.value);
-                currentHour = availableHours[sliderPos];
-                const displayHour = currentHour === 0 ? 12 : (currentHour > 12 ? currentHour - 12 : currentHour);
-                const period = currentHour < 12 ? 'AM' : 'PM';
-                document.getElementById('hourDisplay').textContent = `${displayHour}:00 ${period}`;
-                updateMap();
-            });
-
-            // Date selector
-            document.getElementById('dateSelect').addEventListener('change', (e) => {
-                currentDate = e.target.value;
-                updateMap();
-            });
         }
     </script>
 </body>
