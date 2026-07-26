@@ -1,39 +1,43 @@
 # CTA Transit Delay Prediction
 
-A geospatial machine learning pipeline that predicts transit delays for the Chicago Transit Authority (CTA) using GTFS data, weather enrichment, and spatial feature engineering. Interactive web map displays monthly predictions across all CTA rail stops with realistic time-of-day and seasonal patterns.
+A geospatial ML pipeline built with XGBoost and scikit-learn on Chicago Transit Authority GTFS data with SQLite persistence. Engineers weather and spatial features to generate 13,800+ delay predictions across 144 CTA rail stops, visualized through an interactive MapLibre GL JS web map.
 
 **[View Live Demo →](https://ibiggs24.github.io/TransitPredictor/)**
 
+## Overview
+
+This project demonstrates end-to-end ML pipeline development for transit prediction:
+- **13,824 predictions** across 144 CTA rail stops, 12 months, and 8 time intervals per day
+- **Geospatial feature engineering**: distance from Loop, transfer hub detection
+- **Weather integration**: Historical Chicago climate data from Visual Crossing API
+- **Interactive visualization**: MapLibre GL JS web map with monthly and hourly filtering
+
 ## Key Features
 
-### Spatial ML Pipeline
-- **Spatial features**: distance from Loop, transfer hub detection
-- **Seasonal variation**: Monthly weather patterns (Chicago climate averages)
-- **Time-of-day realism**: Hour-based multipliers (rush hour peaks, minimal 3am delays)
-- **XGBoost classifier**: Trained on GTFS data with weather enrichment
+### ML Pipeline
+- **XGBoost classifier** trained on GTFS data with engineered spatial and weather features
+- **SQLite persistence** for efficient data storage and retrieval
+- **Feature engineering**: Distance from downtown Loop, transfer hub status, weather conditions
+- **Realistic patterns**: Time-of-day multipliers (rush hour peaks) and seasonal variation (winter delays)
 
-### Interactive Visualization
-- **Vanilla JavaScript** with MapLibre GL JS (no frameworks)
-- **All 144 CTA rail stops** with monthly predictions
-- **12 months of predictions** (January-December using 15th of each month)
+### Interactive Web Map
+- **MapLibre GL JS** visualization (vanilla JavaScript, no frameworks)
+- **144 CTA rail stops** with complete coverage
+- **12 monthly predictions** (January-December, using 15th of each month)
 - **8 time intervals** per day (12am, 3am, 6am, 9am, 12pm, 3pm, 6pm, 9pm)
-- **Route geometries** from GTFS shapes.txt (curved, realistic tracks)
-- **GeoJSON format** compatible with ArcGIS Online, QGIS, and other mapping tools
+- **Route geometries** from GTFS shapes.txt for realistic track visualization
+- **GeoJSON output** compatible with ArcGIS Online, QGIS, and other mapping tools
 
-### Realistic Patterns
-- **Winter delays**: Higher probability during cold months (January 40% increase)
-- **Summer efficiency**: Lower delays in warm months (June 15% decrease)
-- **Rush hour peaks**: 9am and 6pm show highest delays
-- **Overnight lows**: Minimal delays at 3am (trains run efficiently with low ridership)
-
-> **Note**: This project uses **simulated delays** with realistic spatial propagation, not actual CTA data. The simulation demonstrates ML techniques for transit prediction.
+> **Note**: This project uses **simulated delays** with realistic spatial propagation patterns to demonstrate ML techniques for transit prediction.
 
 ## Technologies
 
-- **ML**: XGBoost, scikit-learn
-- **Geospatial**: geopy, GeoJSON
-- **Data**: pandas, SQLite, GTFS
-- **Visualization**: Vanilla JavaScript, MapLibre GL JS
+- **Python**: Core pipeline development
+- **ML**: XGBoost, scikit-learn, imbalanced-learn
+- **Data Processing**: Pandas, NumPy
+- **Database**: SQLite
+- **Visualization**: Matplotlib, Jupyter Notebook (analysis), MapLibre GL JS (web map)
+- **Geospatial**: geopy, GeoJSON, GTFS
 - **APIs**: Visual Crossing Weather API
 
 ## Setup Instructions
@@ -102,16 +106,19 @@ Open `docs/index.html` in your browser or deploy to GitHub Pages:
 ## Pipeline Architecture
 
 ```
-GTFS Data → SQLite → Delay Simulation → Weather Enrichment → Spatial Features → XGBoost → Multi-Date GeoJSON → MapLibre Map
+GTFS Data → SQLite Persistence → Delay Simulation → Weather Enrichment → Spatial Feature Engineering → XGBoost Training → GeoJSON Generation → MapLibre Web Map
 ```
 
-**Spatial features:**
-- `distance_from_loop`: Distance in km from downtown Chicago (41.8781°N, 87.6298°W)
-- `is_transfer_hub`: Binary flag for transfer stations
+**Engineered Features:**
+- `distance_from_loop`: Distance in km from downtown Chicago Loop (41.8781°N, 87.6298°W)
+- `is_transfer_hub`: Binary indicator for transfer stations
+- Weather features: Temperature, precipitation, wind speed from Visual Crossing API
+- Temporal features: Hour of day, day of week, month, season
 
-**Realistic multipliers:**
-- **Month-based**: Winter 1.4x delays, Summer 0.85x delays
-- **Hour-based**: Rush hour 1.0x, 3am 0.02x (minimal delays)
+**Prediction Output:**
+- **13,824 total predictions** (144 stops × 8 hours × 12 months)
+- Time-based multipliers: Rush hour peaks (9am, 6pm), overnight lows (3am)
+- Seasonal patterns: Winter delays (1.4x), summer efficiency (0.85x)
 
 ## Project Structure
 
@@ -120,20 +127,22 @@ TransitPredictor/
 ├── scripts/
 │   ├── load_gtfs_sample.py            # Load GTFS into SQLite
 │   ├── label_delays.py                # Simulate delays with propagation
-│   ├── join_weather_features.py       # Add weather data
-│   ├── add_spatial_features.py        # Calculate spatial features
-│   ├── train_xgboost_gridsearch.py    # Train XGBoost model
-│   ├── generate_multidate_geojson.py  # Create 12-month predictions
-│   └── generate_routes_geojson.py     # Extract route geometries
+│   ├── join_weather_features.py       # Enrich with weather data
+│   ├── add_spatial_features.py        # Engineer spatial features
+│   ├── train_xgboost_gridsearch.py    # Train XGBoost classifier
+│   ├── generate_multidate_geojson.py  # Generate 13,824 predictions
+│   └── generate_routes_geojson.py     # Extract CTA route geometries
+├── notebooks/
+│   └── model_training.ipynb           # Jupyter analysis and visualization
 ├── docs/
 │   ├── index.html                     # MapLibre web map (vanilla JS)
 │   └── predictions/
-│       ├── predictions_multidate.geojson  # 12 months × 144 stops × 8 hours
-│       └── routes.geojson                 # CTA route geometries
+│       ├── predictions_multidate.geojson  # 13,824 predictions (144 stops × 8 hours × 12 months)
+│       └── routes.geojson                 # CTA route geometries from GTFS shapes
 ├── data/google_transit/               # GTFS files (gitignored)
 ├── smart_transit.db                   # SQLite database (gitignored)
 ├── .env                               # API keys (gitignored)
-└── requirements.txt
+└── requirements.txt                   # Python dependencies
 ```
 
 ## Author
