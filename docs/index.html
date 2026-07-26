@@ -278,17 +278,9 @@
                         type: 'line',
                         source: 'routes',
                         paint: {
-                            'line-color': [
-                                'case',
-                                ['get', 'is_loop'], '#333333',
-                                '#888888'
-                            ],
-                            'line-width': [
-                                'case',
-                                ['get', 'is_loop'], 4,
-                                3
-                            ],
-                            'line-opacity': 0.6
+                            'line-color': '#888888',
+                            'line-width': 2.5,
+                            'line-opacity': 0.5
                         }
                     });
                 }
