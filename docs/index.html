@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CTA Transit Delay Predictions - Advanced ML Dashboard</title>
+    <title>CTA Transit Delay Predictions</title>
     <script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -174,39 +173,19 @@
 <body>
     <div id="map"></div>
     <div class="controls">
-        <h1>CTA Delay Predictions <span class="ml-badge">ML</span></h1>
+        <h1>CTA Delay Predictions</h1>
 
         <div class="control-section">
-            <label for="dateSelect">Select Date:</label>
+            <label for="dateSelect">Select Month:</label>
             <select id="dateSelect">
-                <option value="">Loading dates...</option>
+                <option value="">Loading...</option>
             </select>
         </div>
 
         <div class="control-section">
-            <label for="hourSlider">Hour of Day:</label>
+            <label for="hourSlider">Time of Day:</label>
             <input type="range" id="hourSlider" min="0" max="7" value="3" step="1">
             <div class="value-display" id="hourDisplay">9:00 AM</div>
-        </div>
-
-        <div class="control-section stats">
-            <div class="stat-row">
-                <span class="stat-label">All CTA Rail Stops:</span>
-                <span class="stat-value" id="stopCount">298</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Model AUC:</span>
-                <span class="stat-value" id="modelAUC">0.694</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Features:</span>
-                <span class="stat-value">23</span>
-            </div>
-        </div>
-
-        <div class="control-section">
-            <div class="legend-title">Top ML Features</div>
-            <canvas id="featureChart"></canvas>
         </div>
 
         <div class="control-section legend">
@@ -232,10 +211,9 @@
 
     <script>
         const CHICAGO_CENTER = [-87.6298, 41.8781];
-        let map, geojsonData, featureImportance, routeData;
+        let map, geojsonData, routeData;
         let currentHour = 9;
         let currentDate = null;
-        let featureChart;
 
         // Initialize map
         map = new maplibregl.Map({
@@ -245,15 +223,7 @@
             zoom: 11
         });
 
-        // Load feature importance
-        fetch('predictions/feature_importance.json')
-            .then(response => response.json())
-            .then(data => {
-                featureImportance = data;
-                document.getElementById('modelAUC').textContent = data.auc_score.toFixed(3);
-                createFeatureChart();
-            })
-            .catch(err => console.log('Feature importance not available'));
+        // Feature importance not displayed
 
         // Load route lines
         fetch('predictions/routes.geojson')
@@ -308,9 +278,17 @@
                         type: 'line',
                         source: 'routes',
                         paint: {
-                            'line-color': '#666666',
-                            'line-width': 2,
-                            'line-opacity': 0.4
+                            'line-color': [
+                                'case',
+                                ['get', 'is_loop'], '#333333',
+                                '#888888'
+                            ],
+                            'line-width': [
+                                'case',
+                                ['get', 'is_loop'], 4,
+                                3
+                            ],
+                            'line-opacity': 0.6
                         }
                     });
                 }
@@ -347,7 +325,7 @@
                     }
                 });
 
-                // Click popup
+                // Click popup - simple
                 map.on('click', 'predictions-layer', (e) => {
                     const props = e.properties;
                     const coords = e.features[0].geometry.coordinates.slice();
@@ -356,13 +334,8 @@
                         .setLngLat(coords)
                         .setHTML(`
                             <div class="popup-title">${props.stop_name}</div>
-                            <div class="popup-row"><strong>Delay Probability:</strong> ${(props.delay_probability * 100).toFixed(1)}%</div>
-                            <div class="popup-row"><strong>Date:</strong> ${props.date}</div>
-                            <div class="popup-row"><strong>Season:</strong> ${props.season || 'N/A'}</div>
-                            <div class="popup-row"><strong>Distance from Loop:</strong> ${props.distance_from_loop?.toFixed(2) || 'N/A'} km</div>
-                            <div class="popup-row"><strong>Transfer Hub:</strong> ${props.is_transfer_hub ? 'Yes' : 'No'}</div>
-                            <div class="popup-row"><strong>Temperature:</strong> ${props.temp?.toFixed(1) || 'N/A'}°F</div>
-                            <div class="popup-row"><strong>Precipitation:</strong> ${props.precip?.toFixed(2) || 0} mm</div>
+                            <div class="popup-row"><strong>Delay:</strong> ${(props.delay_probability * 100).toFixed(0)}%</div>
+                            <div class="popup-row"><strong>Temp:</strong> ${props.temp}°F</div>
                         `)
                         .addTo(map);
                 });
@@ -409,48 +382,6 @@
             currentDate = e.target.value;
             updateMap();
         });
-
-        // Feature importance chart
-        function createFeatureChart() {
-            if (!featureImportance) return;
-
-            const top10 = featureImportance.features.slice(0, 10);
-            const ctx = document.getElementById('featureChart').getContext('2d');
-
-            featureChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: top10.map(f => f.feature.replace(/_/g, ' ')),
-                    datasets: [{
-                        label: 'Importance',
-                        data: top10.map(f => f.importance),
-                        backgroundColor: '#0066cc',
-                        borderColor: '#0052a3',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { font: { size: 9 } }
-                        },
-                        y: {
-                            ticks: { font: { size: 9 } }
-                        }
-                    }
-                }
-            });
-        }
     </script>
 </body>
 </html>
