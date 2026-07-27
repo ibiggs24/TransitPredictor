@@ -2,7 +2,7 @@
 
 A geospatial ML pipeline built with XGBoost and scikit-learn on Chicago Transit Authority GTFS data with SQLite persistence. Engineers weather and spatial features to generate 13,800+ delay predictions across 144 CTA rail stops, visualized through an interactive MapLibre GL JS web map.
 
-**[View Live Demo →](https://ibiggs24.github.io/TransitPredictor/)**
+**[View Live Demo →](https://itbiggs.github.io/Transit_Predictor/)**
 
 ## Overview
 
